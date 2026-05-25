@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmartSplit | Income & Savings Calculator for India</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="SmartSplit home">
+          <span class="brand-mark">SS</span>
+          <span>
+            <strong>SmartSplit</strong>
+            <small>Income & Savings Calculator for India</small>
+          </span>
+        </a>
+        <button class="ghost-button hidden" id="resetApp" type="button">Reset plan</button>
+      </header>
+
+      <main>
+        <section class="auth-page" id="authPage">
+          <div class="auth-card">
+            <div class="auth-brand">
+              <span class="brand-mark">SS</span>
+              <div>
+                <p class="eyebrow">Welcome to SmartSplit</p>
+                <h1>Login to continue</h1>
+              </div>
+            </div>
+
+            <form class="auth-form" id="loginForm">
+              <label>
+                Username
+                <input name="username" type="text" autocomplete="username" placeholder="Username" required />
+              </label>
+              <label>
+                Password
+                <input name="password" type="password" autocomplete="current-password" placeholder="Password" required />
+              </label>
+              <span class="save-status error" id="authStatus"></span>
+              <button class="primary-button" type="submit">Login</button>
+              <span class="auth-separator">or</span>
+              <div class="social-auth-grid" aria-label="Social login options">
+                <button class="social-auth-button" type="button" data-social-provider="Google">
+                  <span class="social-mark google">G</span>
+                  Continue with Google
+                </button>
+                <button class="social-auth-button" type="button" data-social-provider="Microsoft">
+                  <span class="social-mark microsoft">M</span>
+                  Continue with Microsoft
+                </button>
+                <button class="social-auth-button" type="button" data-social-provider="Apple">
+                  <span class="social-mark apple">A</span>
+                  Continue with Apple
+                </button>
+              </div>
+              <span class="auth-separator">or</span>
+              <button class="ghost-button" id="showRegister" type="button">New Register</button>
+            </form>
+
+            <form class="auth-form hidden" id="registerForm">
+              <label>
+                Username
+                <input name="registerUsername" type="text" autocomplete="username" placeholder="Username" required />
+              </label>
+              <label>
+                Email
+                <input name="registerEmail" type="email" autocomplete="email" placeholder="Email" required />
+              </label>
+              <label>
+                Phone Number
+                <input name="registerPhone" type="tel" autocomplete="tel" placeholder="Phone Number" required />
+              </label>
+              <label>
+                New Password
+                <input name="newPassword" type="password" autocomplete="new-password" placeholder="New Password" required />
+              </label>
+              <ul class="password-criteria" id="passwordCriteria" aria-label="Password criteria">
+                <li data-rule="length">At least 8 characters</li>
+                <li data-rule="uppercase">One uppercase letter</li>
+                <li data-rule="lowercase">One lowercase letter</li>
+                <li data-rule="number">One number</li>
+                <li data-rule="special">One special character</li>
+              </ul>
+              <label>
+                Confirm Password
+                <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm Password" required />
+              </label>
+              <span class="save-status error" id="registerStatus"></span>
+              <button class="primary-button" type="submit">Register</button>
+              <span class="auth-separator">or</span>
+              <div class="social-auth-grid" aria-label="Social register options">
+                <button class="social-auth-button" type="button" data-social-provider="Google">
+                  <span class="social-mark google">G</span>
+                  Register with Google
+                </button>
+                <button class="social-auth-button" type="button" data-social-provider="Microsoft">
+                  <span class="social-mark microsoft">M</span>
+                  Register with Microsoft
+                </button>
+                <button class="social-auth-button" type="button" data-social-provider="Apple">
+                  <span class="social-mark apple">A</span>
+                  Register with Apple
+                </button>
+              </div>
+              <button class="ghost-button" id="showLogin" type="button">Back to login</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="setup-panel hidden" id="setupPanel">
+          <div class="setup-copy">
+            <p class="eyebrow">City-wise Budget Planner</p>
+            <h1>Build this month’s money plan before the month builds one for you.</h1>
+            <p class="lede">
+              Enter income, obligations, and lifestyle signals to create a live monthly dashboard for spending, EMIs, savings, alerts, and budget health.
+            </p>
+            <div class="setup-progress" aria-label="Setup progress">
+              <span class="step-pill active" data-step-indicator="1">1 Financial basics</span>
+              <span class="step-pill" data-step-indicator="2">2 Lifestyle pattern</span>
+            </div>
+          </div>
+
+          <div class="setup-card">
+            <form id="setupForm">
+              <div class="form-step active" data-step="1">
+                <div class="form-heading">
+                  <span>Step 1</span>
+                  <h2>Financial Basics</h2>
+                </div>
+
+                <div class="field-grid">
+                  <label>
+                    Monthly Income
+                    <input name="monthlyIncome" type="number" min="0" step="1000" required />
+                  </label>
+                  <label>
+                    State
+                    <select id="stateSelect" name="state" required>
+                      <option value="" selected disabled>Select state</option>
+                    </select>
+                  </label>
+                  <label>
+                    City
+                    <select id="citySelect" name="city" required disabled>
+                      <option value="" selected disabled>Select state first</option>
+                    </select>
+                  </label>
+                  <label>
+                    Pincode
+                    <input id="pinCode" name="pincode" type="text" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN code" required />
+                  </label>
+                  <label>
+                    Monthly EMI Amount
+                    <input name="emi" type="number" min="0" step="500" />
+                  </label>
+                  <label>
+                    Additional Income
+                    <input name="additionalIncome" type="number" min="0" step="500" />
+                  </label>
+                  <label>
+                    Expected Bonus / Side Income
+                    <input name="bonusExpected" type="number" min="0" step="500" />
+                  </label>
+                </div>
+
+                <div class="obligation-box">
+                  <h3>Fixed Monthly Obligations</h3>
+                  <div class="field-grid compact">
+                    <label>
+                      Rent
+                      <input name="rent" type="number" min="0" step="500" />
+                    </label>
+                    <label>
+                      School Fees
+                      <input name="schoolFees" type="number" min="0" step="500" />
+                    </label>
+                    <label>
+                      Insurance
+                      <input name="insurance" type="number" min="0" step="500" />
+                    </label>
+                    <label>
+                      SIP / Investments
+                      <input name="sip" type="number" min="0" step="500" />
+                    </label>
+                    <label>
+                      Loan Payments
+                      <input name="loanPayments" type="number" min="0" step="500" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button class="primary-button" type="button" id="goStepTwo">Continue</button>
+                </div>
+              </div>
+
+              <div class="form-step" data-step="2">
+                <div class="form-heading">
+                  <span>Step 2</span>
+                  <h2>Lifestyle & Spending Pattern</h2>
+                </div>
+
+                <div class="choice-section">
+                  <div class="choice-group" data-name="household">
+                    <h3>Household Type</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card active" data-value="Single">Single</button>
+                      <button type="button" class="choice-card" data-value="Couple">Couple</button>
+                      <button type="button" class="choice-card" data-value="Family of 3-4">Family of 3-4</button>
+                      <button type="button" class="choice-card" data-value="Joint Family">Joint Family</button>
+                    </div>
+                  </div>
+
+                  <div class="choice-group" data-name="eatingOut">
+                    <h3>Eating Out Frequency</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card" data-value="Rarely">Rarely</button>
+                      <button type="button" class="choice-card active" data-value="Weekly">Weekly</button>
+                      <button type="button" class="choice-card" data-value="Frequently">Frequently</button>
+                      <button type="button" class="choice-card" data-value="Daily">Daily</button>
+                    </div>
+                    <label class="amount-range-control">
+                      <span>
+                        Monthly amount range
+                        <output for="eatingOutAmount">₹0</output>
+                      </span>
+                      <input id="eatingOutAmount" class="amount-range" name="eatingOutAmount" type="range" min="0" max="100000" step="1000" value="0" />
+                    </label>
+                  </div>
+
+                  <div class="choice-group" data-name="entertainment">
+                    <h3>Entertainment Spending</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card" data-value="Low">Low</button>
+                      <button type="button" class="choice-card active" data-value="Moderate">Moderate</button>
+                      <button type="button" class="choice-card" data-value="High">High</button>
+                    </div>
+                    <label class="amount-range-control">
+                      <span>
+                        Monthly amount range
+                        <output for="entertainmentAmount">₹0</output>
+                      </span>
+                      <input id="entertainmentAmount" class="amount-range" name="entertainmentAmount" type="range" min="0" max="100000" step="1000" value="0" />
+                    </label>
+                  </div>
+
+                  <div class="choice-group" data-name="transport">
+                    <h3>Transportation Mode</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card active" data-value="Public Transport">Public Transport</button>
+                      <button type="button" class="choice-card" data-value="Bike">Bike</button>
+                      <button type="button" class="choice-card" data-value="Car">Car</button>
+                      <button type="button" class="choice-card" data-value="Cab-based">Cab-based</button>
+                    </div>
+                    <label class="amount-range-control">
+                      <span>
+                        Monthly amount range
+                        <output for="transportAmount">₹0</output>
+                      </span>
+                      <input id="transportAmount" class="amount-range" name="transportAmount" type="range" min="0" max="100000" step="1000" value="0" />
+                    </label>
+                  </div>
+
+                  <div class="choice-group" data-name="shopping">
+                    <h3>Shopping Habits</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card" data-value="Minimal">Minimal</button>
+                      <button type="button" class="choice-card active" data-value="Balanced">Balanced</button>
+                      <button type="button" class="choice-card" data-value="Frequent Shopper">Frequent Shopper</button>
+                    </div>
+                    <label class="amount-range-control">
+                      <span>
+                        Monthly amount range
+                        <output for="shoppingAmount">₹0</output>
+                      </span>
+                      <input id="shoppingAmount" class="amount-range" name="shoppingAmount" type="range" min="0" max="100000" step="1000" value="0" />
+                    </label>
+                  </div>
+
+                  <div class="choice-group" data-name="savingsGoal">
+                    <h3>Savings Goal</h3>
+                    <div class="choice-grid">
+                      <button type="button" class="choice-card active" data-value="Emergency Fund">Emergency Fund</button>
+                      <button type="button" class="choice-card" data-value="Vacation">Vacation</button>
+                      <button type="button" class="choice-card" data-value="House">House</button>
+                      <button type="button" class="choice-card" data-value="Car">Car</button>
+                      <button type="button" class="choice-card" data-value="Retirement">Retirement</button>
+                    </div>
+                    <label class="amount-range-control">
+                      <span>
+                        Monthly amount range
+                        <output for="savingsGoalAmount">₹0</output>
+                      </span>
+                      <input id="savingsGoalAmount" class="amount-range" name="savingsGoalAmount" type="range" min="0" max="100000" step="1000" value="0" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-actions spread">
+                  <button class="ghost-button" type="button" id="backStepOne">Back</button>
+                  <button class="primary-button" type="submit">Create dashboard</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="dashboard hidden" id="dashboard">
+          <div class="dashboard-hero" id="homeSection">
+            <div>
+              <p class="eyebrow">Monthly Financial Monitoring</p>
+              <h1>SmartSplit Dashboard</h1>
+              <p id="dashboardContext">State and city budget plan</p>
+            </div>
+            <div class="hero-actions">
+              <button class="ghost-button" id="editProfile" type="button">Edit setup</button>
+            </div>
+          </div>
+
+          <div class="alert-strip" id="alertStrip"></div>
+
+          <section class="metric-grid" aria-label="Income summary">
+            <article class="metric-card premium">
+              <span>Total Expected Income</span>
+              <strong id="totalExpected">₹0</strong>
+              <small>Income, additions, and expected side income</small>
+            </article>
+            <article class="metric-card">
+              <span>Monthly Salary</span>
+              <strong id="amountReceived">₹0</strong>
+              <small id="receivedCopy">Base monthly income</small>
+            </article>
+            <article class="metric-card">
+              <span>Extra Income</span>
+              <strong id="pendingAmount">₹0</strong>
+              <small>Additional, bonus, and side income</small>
+            </article>
+            <article class="metric-card warning">
+              <span>Total EMI</span>
+              <strong id="totalEmi">₹0</strong>
+              <small id="emiRatio">0% of income</small>
+            </article>
+            <article class="metric-card">
+              <span>Disposable Income</span>
+              <strong id="disposableIncome">₹0</strong>
+              <small>After fixed monthly obligations</small>
+            </article>
+            <article class="metric-card success">
+              <span>Savings Projection</span>
+              <strong id="savingsProjection">₹0</strong>
+              <small id="savingsRatio">0% of expected income</small>
+            </article>
+          </section>
+
+          <div class="content-grid">
+            <section class="panel allocation-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Budget Allocation Breakdown</p>
+                  <h2>Recommended Split</h2>
+                </div>
+                <span class="city-chip" id="cityChip">Mumbai index</span>
+              </div>
+              <div class="allocation-layout">
+                <div class="chart-wrap">
+                  <canvas id="budgetDoughnut" width="260" height="260" aria-label="Budget allocation doughnut chart"></canvas>
+                  <div class="chart-center">
+                    <strong>100%</strong>
+                    <span>planned</span>
+                  </div>
+                </div>
+                <div class="budget-bars" id="budgetBars"></div>
+              </div>
+              <div class="comparison-grid" id="comparisonCards"></div>
+            </section>
+
+            <section class="panel health-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Budget Health Score</p>
+                  <h2>Financial Wellness</h2>
+                </div>
+              </div>
+              <div class="score-ring" id="scoreRing">
+                <strong id="healthScore">0</strong>
+                <span id="healthLabel">Stable</span>
+              </div>
+              <div class="score-factors" id="scoreFactors"></div>
+            </section>
+          </div>
+
+          <div class="content-grid wide-left" id="trackingSection">
+            <section class="panel expense-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Expense Tracking Module</p>
+                  <h2>Transactions</h2>
+                </div>
+                <span id="expenseTotalBadge">₹0 tracked</span>
+              </div>
+
+              <form class="expense-form" id="expenseForm">
+                <input type="hidden" name="editingId" />
+                <label>
+                  Amount
+                  <input name="amount" type="number" min="1" step="1" placeholder="2500" required />
+                </label>
+                <label>
+                  Category
+                  <select name="category" required>
+                    <option>Rent</option>
+                    <option>Food</option>
+                    <option>Grocery</option>
+                    <option>Utilities</option>
+                    <option>Transport</option>
+                    <option>Entertainment</option>
+                    <option>Healthcare</option>
+                    <option>Shopping</option>
+                    <option>Investments</option>
+                    <option>Miscellaneous</option>
+                  </select>
+                </label>
+                <label>
+                  Date
+                  <input name="date" type="date" required />
+                </label>
+                <label class="note-field">
+                  Notes
+                  <input name="note" type="text" maxlength="70" placeholder="Dinner, bill, fuel..." />
+                </label>
+                <button class="primary-button" id="expenseSubmit" type="submit">Add expense</button>
+              </form>
+
+              <div class="transaction-list" id="transactionList"></div>
+            </section>
+
+            <section class="panel insight-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Smart Financial Insights</p>
+                  <h2>Signals</h2>
+                </div>
+              </div>
+              <div class="insight-list" id="insightList"></div>
+            </section>
+          </div>
+
+          <div class="content-grid wide-right">
+            <section class="panel trend-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Expense Trend Graphs</p>
+                  <h2>Income vs Expense Timeline</h2>
+                </div>
+                <span id="trendMonth">This month</span>
+              </div>
+              <canvas id="trendChart" height="280" aria-label="Monthly income versus expense trend"></canvas>
+            </section>
+
+            <section class="panel planner-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Monthly Planner & Tracking</p>
+                  <h2>Next Actions</h2>
+                </div>
+              </div>
+              <div class="planner-list" id="plannerList"></div>
+              <div class="target-card">
+                <div>
+                  <span>Savings Target</span>
+                  <strong id="targetAmount">₹0</strong>
+                </div>
+                <div class="progress-track">
+                  <span id="targetProgress"></span>
+                </div>
+              </div>
+              <div class="goal-grid" id="goalGrid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tracking-page hidden" id="trackingPage">
+          <div class="dashboard-hero profile-hero">
+            <div>
+              <p class="eyebrow">My Tracking</p>
+              <h1>Tracking Expenses</h1>
+              <p>Create simple tracking files and add custom amount fields for spending or gaining.</p>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-button add-file-button" id="newTrackingFile" type="button">+ Create file</button>
+            </div>
+          </div>
+
+          <div class="tracking-create-panel hidden" id="trackingCreatePanel">
+            <form class="tracking-file-form" id="trackingFileForm">
+              <label>
+                File Name
+                <input name="fileName" type="text" maxlength="50" placeholder="Monthly cash flow" required />
+              </label>
+              <div class="form-actions spread">
+                <button class="ghost-button" id="cancelTrackingFile" type="button">Cancel</button>
+                <button class="primary-button" type="submit">Create file</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="tracking-files" id="trackingFilesContainer"></div>
+        </section>
+
+        <section class="profile-page hidden" id="profilePage">
+          <div class="dashboard-hero profile-hero">
+            <div>
+              <p class="eyebrow">Profile</p>
+              <h1>Profile Center</h1>
+              <p id="profileSummary">Manage account details, tracking, and a new financial basics plan.</p>
+            </div>
+          </div>
+
+          <div class="profile-account-panel">
+            <div class="profile-account-heading">
+              <div>
+                <p class="eyebrow">Logged in user</p>
+                <h2 id="profileAccountName">Guest user</h2>
+              </div>
+            </div>
+            <div class="profile-detail-grid">
+              <article>
+                <span>Username</span>
+                <strong id="profileUsername">-</strong>
+              </article>
+              <article>
+                <span>Login ID</span>
+                <strong id="profileLoginId">-</strong>
+              </article>
+              <article>
+                <span>Email</span>
+                <strong id="profileEmail">-</strong>
+              </article>
+              <article>
+                <span>Mobile</span>
+                <strong id="profileMobile">-</strong>
+              </article>
+            </div>
+          </div>
+
+          <div class="profile-action-grid">
+            <button class="profile-action-card" type="button" data-profile-action="tracking">
+              <span>My Tracking</span>
+              <strong>My Tracking</strong>
+              <small>Open tracking files and add spending or gaining amount fields.</small>
+            </button>
+            <button class="profile-action-card" type="button" data-profile-action="financial-basics">
+              <span>New Financial Basics</span>
+              <strong>Create a new plan</strong>
+              <small>Start Step 1 with blank income, EMI, rent, and obligation fields.</small>
+            </button>
+          </div>
+
+          <div class="profile-logout-row">
+            <button class="ghost-button" id="logoutButton" type="button">Logout</button>
+          </div>
+        </section>
+
+        <section class="user-details-page hidden" id="userDetailsPage">
+          <div class="dashboard-hero profile-hero">
+            <div>
+              <p class="eyebrow">User Details Login</p>
+              <h1>User Details</h1>
+              <p>Keep your basic login and contact details ready for your SmartSplit profile.</p>
+            </div>
+            <div class="hero-actions">
+              <button class="ghost-button" id="backToProfile" type="button">Back to Profile</button>
+            </div>
+          </div>
+
+          <div class="setup-card user-details-card">
+            <form class="user-details-form" id="userDetailsForm">
+              <label>
+                Full Name
+                <input name="fullName" type="text" maxlength="60" placeholder="Enter full name" />
+              </label>
+              <label>
+                Mobile Number
+                <input name="mobile" type="tel" maxlength="15" placeholder="Enter mobile number" />
+              </label>
+              <label>
+                Email Address
+                <input name="email" type="email" maxlength="80" placeholder="Enter email address" />
+              </label>
+              <label>
+                Login ID
+                <input name="loginId" type="text" maxlength="40" placeholder="Choose login ID" />
+              </label>
+              <label>
+                Login PIN
+                <input name="loginPin" type="password" maxlength="8" placeholder="Enter PIN" />
+              </label>
+              <div class="form-actions spread">
+                <span class="save-status" id="userDetailsStatus"></span>
+                <button class="primary-button" type="submit">Save details</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="bottom-tabbar" id="bottomTabbar" aria-label="Primary navigation">
+      <button class="tabbar-button active" type="button" data-tab="home">
+        <span class="tabbar-icon home-icon" aria-hidden="true"></span>
+        Home
+      </button>
+      <button class="tabbar-button" type="button" data-tab="tracking">
+        <span class="tabbar-icon tracking-icon" aria-hidden="true"></span>
+        My Tracking
+      </button>
+      <button class="tabbar-button" type="button" data-tab="profile">
+        <span class="tabbar-icon profile-icon" aria-hidden="true"></span>
+        Profile
+      </button>
+    </nav>
+
+    <script src="app.js"></script>
+  </body>
+</html>

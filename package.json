@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start": "node server.js"
+  },
+  "private": true,
+  "name": "smartsplit",
+  "version": "1.0.0"
+}
