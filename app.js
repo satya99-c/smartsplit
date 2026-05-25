@@ -1108,7 +1108,7 @@
         <article class="tracking-empty">
           <div>
             <h2>No tracking files yet</h2>
-            <p>Use the + Create file button to make your first tracker. Add spending amounts in red and gaining amounts in green.</p>
+            <p>Use the + Create file button to make your first tracker. Add spending amounts and gaining amounts.</p>
           </div>
         </article>
       `;
