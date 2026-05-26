@@ -5,8 +5,6 @@
 1. Create a Firebase project.
 2. Enable Authentication providers:
    - Google
-   - Microsoft
-   - Apple, if you have Apple developer credentials
    - Email/password, if username/email login should remain available
 3. Add authorized domains:
    - `satya99-c.github.io`

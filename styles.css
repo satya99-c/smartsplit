@@ -228,14 +228,6 @@ button {
   background: #db4437;
 }
 
-.social-mark.microsoft {
-  background: #2d9cdb;
-}
-
-.social-mark.apple {
-  background: #111827;
-}
-
 .auth-separator {
   display: grid;
   place-items: center;

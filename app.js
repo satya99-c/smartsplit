@@ -609,19 +609,6 @@
       return new window.firebase.auth.GoogleAuthProvider();
     }
 
-    if (provider === "Microsoft") {
-      const microsoftProvider = new window.firebase.auth.OAuthProvider("microsoft.com");
-      microsoftProvider.setCustomParameters({ prompt: "select_account" });
-      return microsoftProvider;
-    }
-
-    if (provider === "Apple") {
-      const appleProvider = new window.firebase.auth.OAuthProvider("apple.com");
-      appleProvider.addScope("email");
-      appleProvider.addScope("name");
-      return appleProvider;
-    }
-
     return null;
   }
 
