@@ -784,6 +784,12 @@ select:focus {
   font-size: 1.05rem;
 }
 
+.profile-plan-empty {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .profile-action-grid {
   display: grid;
   grid-template-columns: 1fr;

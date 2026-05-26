@@ -492,6 +492,11 @@
       const confirmPassword = String(data.get("confirmPassword") || "");
       const passwordStatus = getPasswordCriteria(password);
 
+      if (!username) {
+        els.registerStatus.textContent = "Username is required";
+        return;
+      }
+
       renderPasswordCriteria(password);
       if (!Object.values(passwordStatus).every(Boolean)) {
         els.registerStatus.textContent = "Password does not meet all criteria";
@@ -508,12 +513,14 @@
         return;
       }
 
-      if (state.users.some((user) => user.username === username)) {
+      if (isLocalUsernameTaken(username)) {
         els.registerStatus.textContent = "Username already exists";
         return;
       }
 
       const initialDetails = {
+        username,
+        fullName: username,
         loginId: username,
         email,
         mobile,
@@ -539,10 +546,23 @@
 
   async function registerWithEmail({ username, email, mobile, password }) {
     try {
+      if (!getUsernameKey(username)) {
+        els.registerStatus.textContent = "Use letters, numbers, underscore, or hyphen in username";
+        return;
+      }
+
+      const usernameAvailable = await isCloudUsernameAvailable(username);
+      if (!usernameAvailable) {
+        els.registerStatus.textContent = "Username already exists";
+        return;
+      }
+
       els.registerStatus.textContent = "Creating account...";
       const credential = await firebaseServices.auth.createUserWithEmailAndPassword(email, password);
       await credential.user.updateProfile({ displayName: username });
+      await reserveCloudUsername(username, credential.user.uid);
       await enterCloudUser(credential.user, {
+        username,
         fullName: username,
         loginId: email,
         email,
@@ -552,6 +572,47 @@
     } catch (error) {
       els.registerStatus.textContent = getAuthErrorMessage(error);
     }
+  }
+
+  function isLocalUsernameTaken(username) {
+    const target = normalizeUsername(username);
+    return state.users.some((user) => normalizeUsername(user.username) === target);
+  }
+
+  async function isCloudUsernameAvailable(username) {
+    const usernameKey = getUsernameKey(username);
+    if (!usernameKey) return false;
+
+    const snapshot = await firebaseServices.db.ref(`usernames/${usernameKey}`).get();
+    return !snapshot.exists();
+  }
+
+  async function reserveCloudUsername(username, uid) {
+    const usernameKey = getUsernameKey(username);
+    if (!usernameKey) throw new Error("USERNAME_INVALID");
+
+    const result = await firebaseServices.db.ref(`usernames/${usernameKey}`).transaction((currentUid) => {
+      if (currentUid === null || currentUid === uid) return uid;
+      return undefined;
+    });
+
+    if (!result.committed) {
+      const currentUser = firebaseServices.auth.currentUser;
+      if (currentUser?.uid === uid) {
+        await currentUser.delete().catch(() => {});
+      }
+      throw new Error("USERNAME_TAKEN");
+    }
+
+    return usernameKey;
+  }
+
+  function getUsernameKey(username) {
+    return normalizeUsername(username).replace(/[^a-z0-9_-]/g, "");
+  }
+
+  function normalizeUsername(username) {
+    return String(username || "").trim().toLowerCase();
   }
 
   async function handleSocialAuth(provider) {
@@ -619,6 +680,7 @@
   }
 
   function getAuthErrorMessage(error) {
+    if (error?.message === "USERNAME_TAKEN") return "Username already exists";
     const code = error?.code || "";
     if (code.includes("popup-closed-by-user")) return "Login was closed before completion.";
     if (code.includes("account-exists-with-different-credential")) return "An account already exists with another login method.";
@@ -724,8 +786,10 @@
     els.userDetailsForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const data = new FormData(els.userDetailsForm);
+      const fullName = String(data.get("fullName") || "").trim();
       state.userDetails = {
-        fullName: String(data.get("fullName") || "").trim(),
+        fullName,
+        username: state.userDetails.username || fullName || state.currentUser || "",
         mobile: String(data.get("mobile") || "").trim(),
         email: String(data.get("email") || "").trim(),
         loginId: String(data.get("loginId") || "").trim() || state.currentUser || "",
@@ -924,23 +988,29 @@
     isCloudHydrating = true;
     try {
       const cloudState = await loadCloudUserState(user.uid);
+      const googleName = getFirebaseDisplayName(user, detailsOverride);
       const baseDetails = {
-        fullName: user.displayName || detailsOverride.fullName || "",
+        username: googleName,
+        fullName: googleName,
         loginId: user.email || user.uid,
         email: user.email || detailsOverride.email || "",
         mobile: user.phoneNumber || detailsOverride.mobile || "",
         authProvider: user.providerData?.[0]?.providerId || detailsOverride.authProvider || "firebase",
       };
 
+      const mergedDetails = {
+        ...baseDetails,
+        ...(cloudState?.userDetails || {}),
+        ...detailsOverride,
+      };
+      mergedDetails.fullName = mergedDetails.fullName || googleName;
+      mergedDetails.username = mergedDetails.username || googleName;
+
       Object.assign(state, {
         profile: cloudState?.profile || state.profile || null,
         expenses: cloudState?.expenses || state.expenses || [],
         trackingFiles: cloudState?.trackingFiles || state.trackingFiles || [],
-        userDetails: {
-          ...baseDetails,
-          ...(cloudState?.userDetails || {}),
-          ...detailsOverride,
-        },
+        userDetails: mergedDetails,
         currentUser: user.uid,
         users: [],
       });
@@ -952,6 +1022,7 @@
         currentUser: user.uid,
         userDetails: {
           fullName: user.displayName || "",
+          username: user.displayName || user.email || "",
           loginId: user.email || user.uid,
           email: user.email || "",
           mobile: user.phoneNumber || "",
@@ -965,6 +1036,10 @@
 
     enterHome();
     queueCloudSave();
+  }
+
+  function getFirebaseDisplayName(user, detailsOverride = {}) {
+    return user.displayName || detailsOverride.fullName || detailsOverride.username || user.email?.split("@")[0] || "SmartSplit User";
   }
 
   async function logoutUser() {
@@ -1278,11 +1353,49 @@
   function renderProfileDetails() {
     const details = state.userDetails || {};
     const displayName = details.fullName || state.currentUser || "Guest user";
+    const username = details.username || details.fullName || details.loginId || state.currentUser || "-";
     setText("#profileAccountName", displayName);
-    setText("#profileUsername", state.currentUser || "-");
+    setText("#profileUsername", username);
     setText("#profileLoginId", details.loginId || state.currentUser || "-");
     setText("#profileEmail", details.email || "-");
     setText("#profileMobile", details.mobile || "-");
+    renderProfilePlan();
+  }
+
+  function renderProfilePlan() {
+    const panel = document.querySelector("#profilePlanPanel");
+    if (!panel) return;
+
+    if (!state.profile) {
+      panel.innerHTML = `
+        <div class="profile-account-heading">
+          <div>
+            <p class="eyebrow">Financial plan</p>
+            <h2>No active plan</h2>
+          </div>
+        </div>
+        <p class="profile-plan-empty">Create a financial basics plan to show it here.</p>
+      `;
+      return;
+    }
+
+    const profile = state.profile;
+    panel.innerHTML = `
+      <div class="profile-account-heading">
+        <div>
+          <p class="eyebrow">Financial plan</p>
+          <h2>${escapeHtml(profile.city || "City not set")}, ${escapeHtml(profile.state || "State not set")}</h2>
+        </div>
+      </div>
+      <div class="profile-detail-grid">
+        <article><span>Monthly Salary</span><strong>${formatMoney(profile.monthlyIncome)}</strong></article>
+        <article><span>Total EMI</span><strong>${formatMoney(profile.emi + profile.loanPayments)}</strong></article>
+        <article><span>Rent</span><strong>${formatMoney(profile.rent)}</strong></article>
+        <article><span>Savings Goal</span><strong>${escapeHtml(profile.lifestyle?.savingsGoal || "-")}</strong></article>
+        <article><span>Pincode</span><strong>${escapeHtml(profile.pincode || "-")}</strong></article>
+        <article><span>Created</span><strong>${profile.createdAt ? formatDate(profile.createdAt) : "-"}</strong></article>
+      </div>
+    `;
   }
 
   function renderTrackingPage() {
@@ -1636,12 +1749,9 @@
   }
 
   function renderPlanner(model) {
-    const today = new Date();
-    const emiDate = new Date(today.getFullYear(), today.getMonth(), Math.min(28, today.getDate() + 4));
-    const billDate = new Date(today.getFullYear(), today.getMonth(), Math.min(28, today.getDate() + 7));
     document.querySelector("#plannerList").innerHTML = [
-      plannerItem("Upcoming EMI", formatMoney(model.totalEmi), formatDate(emiDate.toISOString().slice(0, 10))),
-      plannerItem("Bills Due", formatMoney(model.profile.insurance + Math.round(model.totalExpected * 0.025)), formatDate(billDate.toISOString().slice(0, 10))),
+      plannerItem("Upcoming EMI", formatMoney(model.totalEmi)),
+      plannerItem("Bills Due", formatMoney(model.profile.insurance + Math.round(model.totalExpected * 0.025))),
       plannerItem("Extra Income", formatMoney(model.extraIncome), model.extraIncome ? "Allocate before spending" : "No extra income added"),
     ].join("");
 
@@ -1659,7 +1769,7 @@
   }
 
   function plannerItem(label, amount, meta) {
-    return `<article class="planner-item"><strong>${label}</strong><span>${amount}<br>${meta}</span></article>`;
+    return `<article class="planner-item"><strong>${label}</strong><span>${amount}${meta ? `<br>${meta}` : ""}</span></article>`;
   }
 
   function resetApp() {

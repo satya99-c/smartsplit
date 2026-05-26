@@ -5,6 +5,12 @@
         ".read": "auth != null && auth.uid == $uid",
         ".write": "auth != null && auth.uid == $uid"
       }
+    },
+    "usernames": {
+      "$username": {
+        ".read": true,
+        ".write": "auth != null && newData.val() == auth.uid && (!data.exists() || data.val() == auth.uid)"
+      }
     }
   }
 }

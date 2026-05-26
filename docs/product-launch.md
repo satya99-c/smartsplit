@@ -19,6 +19,12 @@ Each signed-in user stores data under:
 users/{firebaseAuthUserId}
 ```
 
+Registered usernames are reserved under:
+
+```text
+usernames/{normalizedUsername}
+```
+
 The saved JSON contains:
 
 ```text
