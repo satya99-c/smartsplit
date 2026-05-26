@@ -1,7 +1,7 @@
 window.SMARTSPLIT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyDr5tp7uR12TqxPwnaj1B0l3c-Ob1Xl7Nk",
   authDomain: "smartsplit-a2faf.firebaseapp.com",
-  databaseURL: "",
+  databaseURL: "https://smartsplit-a2faf-default-rtdb.firebaseio.com",
   projectId: "smartsplit-a2faf",
   storageBucket: "smartsplit-a2faf.firebasestorage.app",
   messagingSenderId: "131415339816",
