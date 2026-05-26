@@ -416,7 +416,13 @@
     const hasFirebaseSdk = Boolean(window.firebase?.initializeApp);
     const hasConfig = Boolean(config?.apiKey && config?.authDomain && config?.databaseURL && config?.projectId && config?.appId);
 
-    if (!hasFirebaseSdk || !hasConfig) return false;
+    if (!hasFirebaseSdk || !hasConfig) {
+      if (config?.apiKey && !config?.databaseURL) {
+        els.authStatus.textContent = "Firebase Realtime Database URL is missing.";
+        els.registerStatus.textContent = "Firebase Realtime Database URL is missing.";
+      }
+      return false;
+    }
 
     try {
       const app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(config);
