@@ -1,0 +1,19 @@
+{
+  "name": "SmartSplit",
+  "short_name": "SmartSplit",
+  "description": "Income and savings calculator with monthly expense tracking for India.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7fbfd",
+  "theme_color": "#0a1d3d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/india-finance-pattern.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

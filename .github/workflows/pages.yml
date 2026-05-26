@@ -28,7 +28,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir public
-          cp index.html app.js styles.css public/
+          cp index.html app.js styles.css firebase-config.js manifest.webmanifest public/
           cp -R assets public/assets
           touch public/.nojekyll
 

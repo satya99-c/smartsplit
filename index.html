@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SmartSplit | Income & Savings Calculator for India</title>
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -32,8 +33,8 @@
 
             <form class="auth-form" id="loginForm">
               <label>
-                Username
-                <input name="username" type="text" autocomplete="username" placeholder="Username" required />
+                Username or Email
+                <input name="username" type="text" autocomplete="username" placeholder="Username or Email" required />
               </label>
               <label>
                 Password
@@ -623,6 +624,10 @@
       </button>
     </nav>
 
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

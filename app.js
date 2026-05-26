@@ -333,6 +333,9 @@
     ...(loadState() || {}),
   };
   let trackingSwipeStart = null;
+  let firebaseServices = null;
+  let cloudSaveTimer = null;
+  let isCloudHydrating = false;
 
   const els = {
     authPage: document.querySelector("#authPage"),
@@ -378,6 +381,7 @@
     populateStateDropdown();
     populateCityDropdown("");
     wireLocationFields();
+    const cloudReady = initFirebaseServices();
     wireSetupFlow();
     wireExpenseForm();
     wireTaskbar();
@@ -390,8 +394,43 @@
     const today = new Date().toISOString().slice(0, 10);
     els.expenseForm.date.value = today;
 
+    if (cloudReady) {
+      firebaseServices.auth.onAuthStateChanged((user) => {
+        if (user) {
+          enterCloudUser(user);
+          return;
+        }
+
+        clearActiveUserSession();
+        showAuth("login");
+      });
+      return;
+    }
+
     if (state.currentUser) enterHome();
     else showAuth("login");
+  }
+
+  function initFirebaseServices() {
+    const config = window.SMARTSPLIT_FIREBASE_CONFIG;
+    const hasFirebaseSdk = Boolean(window.firebase?.initializeApp);
+    const hasConfig = Boolean(config?.apiKey && config?.authDomain && config?.projectId && config?.appId);
+
+    if (!hasFirebaseSdk || !hasConfig) return false;
+
+    try {
+      const app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(config);
+      firebaseServices = {
+        app,
+        auth: window.firebase.auth(),
+        db: window.firebase.firestore(),
+        firestore: window.firebase.firestore,
+      };
+      return true;
+    } catch (error) {
+      console.error("Firebase setup failed", error);
+      return false;
+    }
   }
 
   function wireAuth() {
@@ -415,10 +454,16 @@
       const data = new FormData(els.loginForm);
       const username = String(data.get("username") || "").trim();
       const password = String(data.get("password") || "");
+
+      if (firebaseServices && username.includes("@")) {
+        signInWithEmail(username, password);
+        return;
+      }
+
       const user = state.users.find((item) => item.username === username && item.password === password);
 
       if (!user) {
-        els.authStatus.textContent = "Invalid username or password";
+        els.authStatus.textContent = firebaseServices ? "Use an email address for cloud login, or continue with a provider." : "Invalid username or password";
         return;
       }
 
@@ -452,6 +497,11 @@
         return;
       }
 
+      if (firebaseServices) {
+        registerWithEmail({ username, email, mobile, password });
+        return;
+      }
+
       if (state.users.some((user) => user.username === username)) {
         els.registerStatus.textContent = "Username already exists";
         return;
@@ -472,9 +522,55 @@
     els.logoutButton.addEventListener("click", logoutUser);
   }
 
-  function handleSocialAuth(provider) {
+  async function signInWithEmail(email, password) {
+    try {
+      els.authStatus.textContent = "Signing in...";
+      await firebaseServices.auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      els.authStatus.textContent = getAuthErrorMessage(error);
+    }
+  }
+
+  async function registerWithEmail({ username, email, mobile, password }) {
+    try {
+      els.registerStatus.textContent = "Creating account...";
+      const credential = await firebaseServices.auth.createUserWithEmailAndPassword(email, password);
+      await credential.user.updateProfile({ displayName: username });
+      await enterCloudUser(credential.user, {
+        fullName: username,
+        loginId: email,
+        email,
+        mobile,
+        authProvider: "password",
+      });
+    } catch (error) {
+      els.registerStatus.textContent = getAuthErrorMessage(error);
+    }
+  }
+
+  async function handleSocialAuth(provider) {
     const normalizedProvider = String(provider || "").trim();
     if (!normalizedProvider) return;
+
+    if (firebaseServices) {
+      try {
+        const authProvider = createFirebaseAuthProvider(normalizedProvider);
+        if (!authProvider) {
+          els.authStatus.textContent = `${normalizedProvider} login is not configured yet.`;
+          els.registerStatus.textContent = `${normalizedProvider} login is not configured yet.`;
+          return;
+        }
+
+        els.authStatus.textContent = `Opening ${normalizedProvider} login...`;
+        els.registerStatus.textContent = `Opening ${normalizedProvider} login...`;
+        await firebaseServices.auth.signInWithPopup(authProvider);
+      } catch (error) {
+        const message = getAuthErrorMessage(error);
+        els.authStatus.textContent = message;
+        els.registerStatus.textContent = message;
+      }
+      return;
+    }
 
     const username = `${normalizedProvider.toLowerCase()}_user`;
     const email = `${normalizedProvider.toLowerCase()}.user@smartsplit.local`;
@@ -506,6 +602,37 @@
     els.registerStatus.textContent = "";
     saveState();
     enterHome();
+  }
+
+  function createFirebaseAuthProvider(provider) {
+    if (provider === "Google") {
+      return new window.firebase.auth.GoogleAuthProvider();
+    }
+
+    if (provider === "Microsoft") {
+      const microsoftProvider = new window.firebase.auth.OAuthProvider("microsoft.com");
+      microsoftProvider.setCustomParameters({ prompt: "select_account" });
+      return microsoftProvider;
+    }
+
+    if (provider === "Apple") {
+      const appleProvider = new window.firebase.auth.OAuthProvider("apple.com");
+      appleProvider.addScope("email");
+      appleProvider.addScope("name");
+      return appleProvider;
+    }
+
+    return null;
+  }
+
+  function getAuthErrorMessage(error) {
+    const code = error?.code || "";
+    if (code.includes("popup-closed-by-user")) return "Login was closed before completion.";
+    if (code.includes("account-exists-with-different-credential")) return "An account already exists with another login method.";
+    if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) return "Invalid email or password.";
+    if (code.includes("auth/email-already-in-use")) return "Email is already registered.";
+    if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication.";
+    return error?.message || "Login failed. Please try again.";
   }
 
   function wireLocationFields() {
@@ -798,10 +925,74 @@
     else showSetup(1, { activeTab: "home" });
   }
 
-  function logoutUser() {
+  async function enterCloudUser(user, detailsOverride = {}) {
+    if (!firebaseServices || !user) return;
+
+    isCloudHydrating = true;
+    try {
+      const cloudState = await loadCloudUserState(user.uid);
+      const baseDetails = {
+        fullName: user.displayName || detailsOverride.fullName || "",
+        loginId: user.email || user.uid,
+        email: user.email || detailsOverride.email || "",
+        mobile: user.phoneNumber || detailsOverride.mobile || "",
+        authProvider: user.providerData?.[0]?.providerId || detailsOverride.authProvider || "firebase",
+      };
+
+      Object.assign(state, {
+        profile: cloudState?.profile || state.profile || null,
+        expenses: cloudState?.expenses || state.expenses || [],
+        trackingFiles: cloudState?.trackingFiles || state.trackingFiles || [],
+        userDetails: {
+          ...baseDetails,
+          ...(cloudState?.userDetails || {}),
+          ...detailsOverride,
+        },
+        currentUser: user.uid,
+        users: [],
+      });
+
+      saveLocalState();
+    } catch (error) {
+      console.error("Cloud data load failed", error);
+      Object.assign(state, {
+        currentUser: user.uid,
+        userDetails: {
+          fullName: user.displayName || "",
+          loginId: user.email || user.uid,
+          email: user.email || "",
+          mobile: user.phoneNumber || "",
+          authProvider: user.providerData?.[0]?.providerId || "firebase",
+        },
+      });
+      saveLocalState();
+    } finally {
+      isCloudHydrating = false;
+    }
+
+    enterHome();
+    queueCloudSave();
+  }
+
+  async function logoutUser() {
+    if (firebaseServices?.auth.currentUser) {
+      await firebaseServices.auth.signOut();
+    }
     state.currentUser = null;
-    saveState();
+    clearActiveUserSession();
+    saveLocalState();
     showAuth("login");
+  }
+
+  function clearActiveUserSession() {
+    Object.assign(state, {
+      profile: null,
+      expenses: [],
+      userDetails: {},
+      currentUser: null,
+      trackingFiles: [],
+    });
+    saveLocalState();
   }
 
   function getPasswordCriteria(password) {
@@ -1714,7 +1905,43 @@
   }
 
   function saveState() {
+    saveLocalState();
+    queueCloudSave();
+  }
+
+  function saveLocalState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  async function loadCloudUserState(userId) {
+    if (!firebaseServices?.db || !userId) return null;
+    const doc = await firebaseServices.db.collection("users").doc(userId).get();
+    return doc.exists ? doc.data() : null;
+  }
+
+  function queueCloudSave() {
+    if (!firebaseServices?.auth.currentUser || isCloudHydrating) return;
+    window.clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = window.setTimeout(syncCloudState, 600);
+  }
+
+  async function syncCloudState() {
+    const user = firebaseServices?.auth.currentUser;
+    if (!firebaseServices?.db || !user || isCloudHydrating) return;
+
+    const payload = {
+      profile: state.profile,
+      expenses: state.expenses || [],
+      trackingFiles: state.trackingFiles || [],
+      userDetails: state.userDetails || {},
+      updatedAt: firebaseServices.firestore.FieldValue.serverTimestamp(),
+    };
+
+    try {
+      await firebaseServices.db.collection("users").doc(user.uid).set(payload, { merge: true });
+    } catch (error) {
+      console.error("Cloud data save failed", error);
+    }
   }
 
   function formatMoney(value) {
