@@ -414,7 +414,7 @@
   function initFirebaseServices() {
     const config = window.SMARTSPLIT_FIREBASE_CONFIG;
     const hasFirebaseSdk = Boolean(window.firebase?.initializeApp);
-    const hasConfig = Boolean(config?.apiKey && config?.authDomain && config?.projectId && config?.appId);
+    const hasConfig = Boolean(config?.apiKey && config?.authDomain && config?.databaseURL && config?.projectId && config?.appId);
 
     if (!hasFirebaseSdk || !hasConfig) return false;
 
@@ -423,8 +423,8 @@
       firebaseServices = {
         app,
         auth: window.firebase.auth(),
-        db: window.firebase.firestore(),
-        firestore: window.firebase.firestore,
+        db: window.firebase.database(),
+        database: window.firebase.database,
       };
       return true;
     } catch (error) {
@@ -1902,8 +1902,8 @@
 
   async function loadCloudUserState(userId) {
     if (!firebaseServices?.db || !userId) return null;
-    const doc = await firebaseServices.db.collection("users").doc(userId).get();
-    return doc.exists ? doc.data() : null;
+    const snapshot = await firebaseServices.db.ref(`users/${userId}`).get();
+    return snapshot.exists() ? snapshot.val() : null;
   }
 
   function queueCloudSave() {
@@ -1921,11 +1921,11 @@
       expenses: state.expenses || [],
       trackingFiles: state.trackingFiles || [],
       userDetails: state.userDetails || {},
-      updatedAt: firebaseServices.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebaseServices.database.ServerValue.TIMESTAMP,
     };
 
     try {
-      await firebaseServices.db.collection("users").doc(user.uid).set(payload, { merge: true });
+      await firebaseServices.db.ref(`users/${user.uid}`).set(payload);
     } catch (error) {
       console.error("Cloud data save failed", error);
     }

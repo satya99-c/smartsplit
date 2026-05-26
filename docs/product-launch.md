@@ -9,9 +9,9 @@
 3. Add authorized domains:
    - `satya99-c.github.io`
    - Any custom domain you add later
-4. Create a Firestore database.
-5. Publish the rules from `firestore.rules`.
-6. Copy Firebase web app config into `firebase-config.js`.
+4. Create a Realtime Database in Firebase.
+5. Publish the rules from `database.rules.json`.
+6. Copy Firebase web app config into `firebase-config.js`, including `databaseURL`.
 
 Each signed-in user stores data under:
 
@@ -19,7 +19,7 @@ Each signed-in user stores data under:
 users/{firebaseAuthUserId}
 ```
 
-The saved document contains:
+The saved JSON contains:
 
 ```text
 profile
